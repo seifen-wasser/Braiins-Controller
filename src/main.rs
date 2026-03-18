@@ -1,27 +1,36 @@
-mod device;
 mod api;
+mod device;
 mod utils;
 
+use crate::{device::shelly::ShellyClient, utils::config::ShellyConfig};
+use actix_web::{App, HttpServer, web};
 
-use actix_web::{web, App, HttpServer};
-use std::sync::Mutex;
+async fn init_automations() -> Result<(), Box<dyn std::error::Error>> {
 
+    //Shelly
+    let mut shelly: ShellyClient = ShellyClient::new("192.0.0.182");
+
+    println!("Shelly status: {:?}", shelly.get_status().await);
+
+    Ok(())
+}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    //print!("\x1B[2J\x1B[1;1H");
+    println!("[INFO] Starting");
+    
+    //init_automations();
 
+    /*actix_web::rt::spawn(async {
+        if let Err(e) = utils::automations::run_automation().await {
+            eprintln!("Automation task failed: {}", e);
+        }
+    });*/
 
-    let test = "192.123.123.40";
-    let addr = format!("http://{}:50051", test);
-
-    //let auth_token = device::braiins::login(&addr, "root", "test").await.unwrap();
-
-    HttpServer::new(|| {
-        App::new()
-            .configure(api::routs::init_routs)
-            .route("/", web::get().to(|| async { "Hello, World!" }))
-    })
-    .bind("0.0.0.0:8080")?
-    .run()
-    .await
+    println!("[INFO] http://127.0.0.1:8080");
+    HttpServer::new(move || App::new().configure(api::routs::init_routs))
+        .bind("0.0.0.0:8080")?
+        .run()
+        .await
 }

@@ -1,7 +1,6 @@
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use anyhow::Result;
-
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ShellyConfig {
@@ -9,7 +8,7 @@ pub struct ShellyConfig {
 }
 
 pub struct Config {
-    pub max_watts_braiins: f64, // The max power the miner should consume
+    pub max_watts_braiins: f64,   // The max power the miner should consume
     pub start_watts_braiins: f64, // The power where the miner should start mining
 }
 
@@ -22,6 +21,16 @@ pub struct BraiinsConfig {
 
 impl ShellyConfig {
     const FILE_PATH: &'static str = "shelly_config.json";
+
+    /// Returns `true` if the config file exists, `false` otherwise.
+    /// Propagates IO errors other than `NotFound`.
+    pub fn check() -> Result<bool> {
+        match fs::metadata(Self::FILE_PATH) {
+            Ok(_) => Ok(true),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(false),
+            Err(e) => Err(e.into()),
+        }
+    }
 
     pub fn load() -> Result<Self> {
         if let Ok(data) = fs::read_to_string(Self::FILE_PATH) {
