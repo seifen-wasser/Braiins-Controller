@@ -1,10 +1,13 @@
 use tonic::metadata::{Ascii, MetadataMap, MetadataValue};
 use tonic::{Extensions, Request};
-use wink::{
-    GetMinerConfigurationRequest, LoginRequest, PauseMiningRequest, ResumeMiningRequest,
-    actions_service_client::ActionsServiceClient,
-    authentication_service_client::AuthenticationServiceClient,
-    configuration_service_client::ConfigurationServiceClient,
+use braiins_controller::actions_service_client::ActionsServiceClient;
+use braiins_controller::authentication_service_client::AuthenticationServiceClient;
+use braiins_controller::configuration_service_client::ConfigurationServiceClient;
+use braiins_controller::miner_service_client::MinerServiceClient; // Changed from miner_service_server
+use braiins_controller::{
+    GetMinerConfigurationRequest, GetMinerStatusRequest, GetMinerStatusResponse, LoginRequest,
+    PauseMiningRequest, ResumeMiningRequest,
+    MinerStatus
 };
 
 pub struct Braiins {
@@ -57,7 +60,7 @@ impl Braiins {
 
         let response = client.login(request).await?;
 
-        self.auth_token = response.metadata().get("authorization").cloned().into();
+        self.auth_token = response.metadata().get("authorization").cloned();
 
         Ok(())
     }
@@ -72,7 +75,26 @@ impl Braiins {
         Ok(())
     }
 
-    /// Pauses mining on the miner.
+    pub async fn get_mining_status(
+        &self,
+    ) -> Result<bool, Box<dyn std::error::Error>> {
+        let request = self.authenticated_request(GetMinerStatusRequest {})?;
+        let mut client = MinerServiceClient::connect(self.server_addr()).await?;
+        let response = client.get_miner_status(request).await?;
+        let mut stream = response.into_inner();
+
+         match stream.message().await? {
+        Some(status) => {
+            match  MinerStatus::from_i32(status.status) {
+                Some(MinerStatus::Paused) => Ok(false), 
+                Some(_) => Ok(true),                          
+                None => Err("Invalid miner status value".into()),
+            }
+        }
+        None => Err("No status received from miner".into()),
+    }
+    }
+
     pub async fn pause_miner(&self) -> Result<(), Box<dyn std::error::Error>> {
         let request = self.authenticated_request(PauseMiningRequest {})?;
         let mut client = ActionsServiceClient::connect(self.server_addr()).await?;
@@ -80,7 +102,6 @@ impl Braiins {
         Ok(())
     }
 
-    /// Resumes mining on the miner.
     pub async fn resume_miner(&self) -> Result<(), Box<dyn std::error::Error>> {
         let request = self.authenticated_request(ResumeMiningRequest {})?;
         let mut client = ActionsServiceClient::connect(self.server_addr()).await?;

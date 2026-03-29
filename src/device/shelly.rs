@@ -63,19 +63,8 @@ impl ShellyClient {
     }
 
     pub async fn test_shelly(ip: &str) -> bool {
-        let url = format!("http://{}/rpc/Shelly.GetStatus", ip);
-        let resp = reqwest::get(&url).await;
-
-        let Ok(resp) = resp else {
-            return false;
-        };
-
-        let status: serde_json::Value = match resp.json().await {
-            Ok(v) => v,
-            Err(_) => return false,
-        };
-
-        status.get("em:0").is_some()
+        let client = Self::new(ip);
+        client.get_status().await.is_ok()
     }
 
     pub async fn get_status(&self) -> Result<ShellyStatus> {

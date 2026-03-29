@@ -1,12 +1,13 @@
 [package]
-name = "wink"
+name = "braiins-controller"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
 actix-web = "4"
+dotenv = "0.15"
 actix-rt = "2"
-actix-cors = "0.6"
+actix-cors = "0.7"
 reqwest = { version = "0.11", features = ["json"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
